@@ -1,0 +1,23 @@
+package com.delivery.delivery_system.dto;
+
+import com.delivery.delivery_system.model.OrderStatus;
+import lombok.Builder;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Builder
+public record OrderResponse(
+        Long id,
+        OrderStatus status,
+        LocalDateTime createdAt,
+        LocalDateTime deliveredAt, // Добавлено
+        CustomerInfo customerInfo,
+        CourierInfo courierInfo,
+        List<ProductInfo> products
+) {
+    public record CustomerInfo(Long id, String fullName) {}
+    public record CourierInfo(Long id, String fullName) {}
+    public record ProductInfo(Long id, String name, BigDecimal price) {}
+}
