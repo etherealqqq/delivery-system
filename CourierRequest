@@ -1,0 +1,13 @@
+package com.delivery.delivery_system.dto;
+
+
+import com.delivery.delivery_system.model.CourierStatus;
+import jakarta.validation.constraints.*;
+
+public record CourierRequest(
+        @NotBlank @Size(max = 100) String firstName,
+        @NotBlank @Size(max = 100) String lastName,
+        @NotBlank @Pattern(regexp = "^\\+?[0-9]{10,15}$") String phoneNumber,
+        @NotBlank @Email @Size(max = 50) String email,
+        CourierStatus status
+) {}
