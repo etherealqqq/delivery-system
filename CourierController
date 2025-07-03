@@ -1,0 +1,61 @@
+package com.delivery.delivery_system.controller;
+
+
+import com.delivery.delivery_system.dto.CourierRequest;
+import com.delivery.delivery_system.dto.CourierResponse;
+import com.delivery.delivery_system.model.CourierStatus;
+import com.delivery.delivery_system.service.CourierService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/couriers")
+@RequiredArgsConstructor
+public class CourierController {
+    private final CourierService courierService;
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public CourierResponse createCourier(@Valid @RequestBody CourierRequest request) {
+        return courierService.createCourier(request);
+    }
+
+    @GetMapping("/{id}")
+    public CourierResponse getCourierById(@PathVariable Long id) {
+        return courierService.getCourierById(id);
+    }
+
+    @GetMapping
+    public List<CourierResponse> getAllCouriers() {
+        return courierService.getAllCouriers();
+    }
+
+    @GetMapping("/available")
+    public List<CourierResponse> getAvailableCouriers() {
+        return courierService.getAvailableCouriers();
+    }
+
+    @PutMapping("/{id}")
+    public CourierResponse updateCourier(
+            @PathVariable Long id,
+            @Valid @RequestBody CourierRequest request) {
+        return courierService.updateCourier(id, request);
+    }
+
+    @PatchMapping("/{id}/status")
+    public void updateCourierStatus(
+            @PathVariable Long id,
+            @RequestParam CourierStatus status) {
+        courierService.updateCourierStatus(id, status);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCourier(@PathVariable Long id) {
+        courierService.deleteCourier(id);
+    }
+}
