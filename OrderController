@@ -1,0 +1,106 @@
+package com.delivery.delivery_system.controller;
+
+import com.delivery.delivery_system.dto.OrderRequest;
+import com.delivery.delivery_system.dto.OrderResponse;
+import com.delivery.delivery_system.dto.StatusUpdateRequest;
+import com.delivery.delivery_system.model.OrderStatus;
+import com.delivery.delivery_system.service.OrderService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/orders")
+@RequiredArgsConstructor
+@Tag(name = "Order Management", description = "API для управления заказами")
+public class OrderController {
+
+    private final OrderService orderService;
+
+    @PostMapping
+    @Operation(summary = "Создать заказ",
+            description = "Создает новый заказ с указанными товарами",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "Заказ успешно создан"),
+                    @ApiResponse(responseCode = "404", description = "Клиент, адрес или товары не найдены")
+            })
+    public ResponseEntity<OrderResponse> createOrder(
+            @Valid @RequestBody OrderRequest request) {
+        OrderResponse response = orderService.createOrder(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}/courier")
+    @Operation(summary = "Назначить курьера",
+            description = "Назначает курьера на заказ",
+            parameters = {
+                    @Parameter(name = "id", description = "ID заказа", required = true),
+                    @Parameter(name = "courierId", description = "ID курьера", required = true)
+            })
+    public ResponseEntity<OrderResponse> assignCourier(
+            @PathVariable Long id,
+            @RequestParam Long courierId) {
+        OrderResponse response = orderService.assignCourier(id, courierId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/status")
+    @Operation(summary = "Обновить статус",
+            description = "Изменяет статус заказа",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Статус обновлен"),
+                    @ApiResponse(responseCode = "400", description = "Недопустимое изменение статуса")
+            })
+    public ResponseEntity<OrderResponse> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody StatusUpdateRequest request) {
+        OrderResponse response = orderService.updateStatus(id, request.status());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<Page<OrderResponse>> getCustomerOrders(
+            @PathVariable Long customerId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<OrderResponse> response = orderService.getCustomerOrders(customerId, pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/courier/{courierId}")
+    @Operation(summary = "Заказы курьера",
+            description = "Возвращает заказы курьера с пагинацией")
+    public ResponseEntity<Page<OrderResponse>> getCourierOrders(
+            @PathVariable Long courierId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<OrderResponse> response = orderService.getCourierOrders(courierId, pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/status/{status}")
+    @Operation(summary = "Заказы по статусу",
+            description = "Возвращает заказы по статусу с пагинацией")
+    public ResponseEntity<Page<OrderResponse>> getOrdersByStatus(
+            @PathVariable OrderStatus status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<OrderResponse> response = orderService.getOrdersByStatus(status, pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Детали заказа",
+            description = "Возвращает полную информацию о заказе")
+    public ResponseEntity<OrderResponse> getOrderDetails(
+            @PathVariable Long id) {
+        OrderResponse response = orderService.getOrderById(id);
+        return ResponseEntity.ok(response);
+    }
+}
