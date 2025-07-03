@@ -1,0 +1,15 @@
+package com.delivery.delivery_system.config;
+
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@SecurityScheme(
+        name = "userAuth",
+        type = SecuritySchemeType.HTTP,
+        scheme = "basic"  // Для логина/пароля
+)
+public class OpenApiConfig {
+    // Класс может быть пустым, важны только аннотации
+}
