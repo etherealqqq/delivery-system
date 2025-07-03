@@ -1,0 +1,11 @@
+package com.delivery.delivery_system.dto;
+
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import java.util.List;
+
+public record OrderRequest(
+        @NotNull Long customerId,  // автоматически создаст getCustomerId()
+        @NotEmpty List<Long> productIds, // getProductIds()
+        @NotNull Long addressId   // getAddressId()
+) {}
