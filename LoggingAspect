@@ -1,0 +1,51 @@
+package com.delivery.delivery_system.aop;
+
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+@Aspect  // Помечаем класс как аспект
+@Component  // Регистрируем его в Spring-контексте
+public class LoggingAspect {
+
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    /**
+     * Логирует вызовы всех методов в контроллерах.
+     */
+    @Around("execution(* com.delivery.delivery_system.controller.*.*(..))")
+    public Object logControllerMethods(ProceedingJoinPoint joinPoint) throws Throwable {
+        String methodName = joinPoint.getSignature().getName();
+        String className = joinPoint.getTarget().getClass().getSimpleName();
+
+        logger.info("▶️ Вызов метода: {}.{}()", className, methodName);
+
+        try {
+            Object result = joinPoint.proceed();  // Выполняем метод
+            logger.info("✅ Успешно: {}.{}()", className, methodName);
+            return result;
+        } catch (Exception e) {
+            logger.error("❌ Ошибка в {}.{}(): {}", className, methodName, e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * Логирует время выполнения методов с аннотацией @GetMapping.
+     */
+    @Around("@annotation(org.springframework.web.bind.annotation.GetMapping)")
+    public Object logExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
+        long startTime = System.currentTimeMillis();
+        Object result = joinPoint.proceed();
+        long duration = System.currentTimeMillis() - startTime;
+
+        logger.info("⏱️ Метод {} выполнен за {} мс",
+                joinPoint.getSignature().getName(),
+                duration);
+
+        return result;
+    }
+}
