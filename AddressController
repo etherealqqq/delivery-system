@@ -1,0 +1,46 @@
+package com.delivery.delivery_system.controller;
+
+import com.delivery.delivery_system.dto.AddressRequest;
+import com.delivery.delivery_system.dto.AddressResponse;
+import com.delivery.delivery_system.service.AddressService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/addresses")
+@RequiredArgsConstructor
+public class AddressController {
+    private final AddressService addressService;
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public AddressResponse createAddress(@RequestBody AddressRequest request) {
+        return addressService.createAddress(request);
+    }
+
+    @GetMapping("/{id}")
+    public AddressResponse getAddressById(@PathVariable Long id) {
+        return addressService.getAddressById(id);
+    }
+
+    @GetMapping
+    public List<AddressResponse> getAllAddresses() {
+        return addressService.getAllAddresses();
+    }
+
+    @PutMapping("/{id}")
+    public AddressResponse updateAddress(
+            @PathVariable Long id,
+            @RequestBody AddressRequest request) {
+        return addressService.updateAddress(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAddress(@PathVariable Long id) {
+        addressService.deleteAddress(id);
+    }
+}
