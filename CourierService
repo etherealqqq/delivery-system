@@ -1,0 +1,119 @@
+package com.delivery.delivery_system.service;
+
+
+import com.delivery.delivery_system.dto.CourierRequest;
+import com.delivery.delivery_system.dto.CourierResponse;
+import com.delivery.delivery_system.exception.DuplicateResourceException;
+import com.delivery.delivery_system.exception.ResourceNotFoundException;
+import com.delivery.delivery_system.model.Courier;
+import com.delivery.delivery_system.model.CourierStatus;
+import com.delivery.delivery_system.repository.CourierRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class CourierService {
+    private final CourierRepository courierRepository;
+
+    @Transactional
+    public CourierResponse createCourier(CourierRequest request) {
+        if (courierRepository.existsByEmail(request.email())) {
+            throw new DuplicateResourceException("Email already taken");
+        }
+        if (courierRepository.existsByPhoneNumber(request.phoneNumber())) {
+            throw new DuplicateResourceException("Phone number already taken");
+        }
+
+        Courier courier = Courier.builder()
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .phoneNumber(request.phoneNumber())
+                .email(request.email())
+                .status(request.status() != null ? request.status() : CourierStatus.AVAILABLE)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        courier = courierRepository.save(courier);
+        return mapToResponse(courier);
+    }
+
+    public CourierResponse getCourierById(Long id) {
+        Courier courier = courierRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier not found with id: " + id));
+        return mapToResponse(courier);
+    }
+
+    public List<CourierResponse> getAllCouriers() {
+        return courierRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<CourierResponse> getAvailableCouriers() {
+        return courierRepository.findByStatus(CourierStatus.AVAILABLE).stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Transactional
+    public CourierResponse updateCourier(Long id, CourierRequest request) {
+        Courier courier = courierRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier not found with id: " + id));
+
+        if (!courier.getEmail().equals(request.email()) &&
+                courierRepository.existsByEmail(request.email())) {
+            throw new DuplicateResourceException("Email already taken");
+        }
+        if (!courier.getPhoneNumber().equals(request.phoneNumber()) &&
+                courierRepository.existsByPhoneNumber(request.phoneNumber())) {
+            throw new DuplicateResourceException("Phone number already taken");
+        }
+
+        courier.setFirstName(request.firstName());
+        courier.setLastName(request.lastName());
+        courier.setPhoneNumber(request.phoneNumber());
+        courier.setEmail(request.email());
+        if (request.status() != null) {
+            courier.setStatus(request.status());
+        }
+
+        courier = courierRepository.save(courier);
+        return mapToResponse(courier);
+    }
+
+    @Transactional
+    public void updateCourierStatus(Long id, CourierStatus status) {
+        Courier courier = courierRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier not found with id: " + id));
+        courier.setStatus(status);
+        courier.setLastActiveAt(LocalDateTime.now());
+        courierRepository.save(courier);
+    }
+
+    @Transactional
+    public void deleteCourier(Long id) {
+        if (!courierRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Courier not found with id: " + id);
+        }
+        courierRepository.deleteById(id);
+    }
+
+    private CourierResponse mapToResponse(Courier courier) {
+        return new CourierResponse(
+                courier.getId(),
+                courier.getFirstName(),
+                courier.getLastName(),
+                courier.getPhoneNumber(),
+                courier.getEmail(),
+                courier.getStatus(),
+                courier.getCreatedAt(),
+                courier.getLastActiveAt(),
+                courier.getFullName()
+        );
+    }
+}
