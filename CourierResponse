@@ -1,0 +1,17 @@
+package com.delivery.delivery_system.dto;
+
+
+import com.delivery.delivery_system.model.CourierStatus;
+import java.time.LocalDateTime;
+
+public record CourierResponse(
+        Long id,
+        String firstName,
+        String lastName,
+        String phoneNumber,
+        String email,
+        CourierStatus status,
+        LocalDateTime createdAt,
+        LocalDateTime lastActiveAt,
+        String fullName
+) {}
