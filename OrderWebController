@@ -1,0 +1,39 @@
+package com.delivery.controller;
+
+import com.delivery.model.Order;
+import com.delivery.service.OrderService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+@Controller
+@RequestMapping("/orders")
+@RequiredArgsConstructor
+public class OrderWebController {
+    private final OrderService orderService;
+
+    @GetMapping
+    public String getAllOrders(Model model) {
+        model.addAttribute("orders", orderService.getAllOrders());
+        return "orders";
+    }
+
+    @GetMapping("/{id}")
+    public String getOrder(@PathVariable Long id, Model model) {
+        model.addAttribute("order", orderService.getOrderById(id));
+        return "order-details";
+    }
+
+    @GetMapping("/new")
+    public String showCreateForm(Model model) {
+        // Здесь нужно добавить модели для выбора клиента, продуктов и т.д.
+        return "order-form";
+    }
+
+    @PostMapping
+    public String createOrder(@ModelAttribute Order order) {
+        // Здесь будет логика создания заказа
+        return "redirect:/orders/" + order.getId();
+    }
+}
