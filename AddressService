@@ -1,0 +1,78 @@
+package com.delivery.delivery_system.service;
+
+
+import com.delivery.delivery_system.dto.AddressRequest;
+import com.delivery.delivery_system.dto.AddressResponse;
+import com.delivery.delivery_system.exception.ResourceNotFoundException;
+import com.delivery.delivery_system.model.Address;
+import com.delivery.delivery_system.repository.AddressRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class AddressService {
+    private final AddressRepository addressRepository;
+
+    public AddressResponse createAddress(AddressRequest request) {
+        Address address = Address.builder()
+                .city(request.city())
+                .street(request.street())
+                .house(request.house())
+                .apartment(request.apartment())
+                .comment(request.comment())
+                .fullAddress(request.fullAddress())
+                .build();
+
+        address = addressRepository.save(address);
+        return mapToResponse(address);
+    }
+
+    public AddressResponse getAddressById(Long id) {
+        Address address = addressRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
+        return mapToResponse(address);
+    }
+
+    public List<AddressResponse> getAllAddresses() {
+        return addressRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public AddressResponse updateAddress(Long id, AddressRequest request) {
+        Address address = addressRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
+
+        address.setCity(request.city());
+        address.setStreet(request.street());
+        address.setHouse(request.house());
+        address.setApartment(request.apartment());
+        address.setComment(request.comment());
+        address.setFullAddress(request.fullAddress());
+
+        address = addressRepository.save(address);
+        return mapToResponse(address);
+    }
+
+    public void deleteAddress(Long id) {
+        if (!addressRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Address not found");
+        }
+        addressRepository.deleteById(id);
+    }
+
+    private AddressResponse mapToResponse(Address address) {
+        return new AddressResponse(
+                address.getId(),
+                address.getCity(),
+                address.getStreet(),
+                address.getHouse(),
+                address.getApartment(),
+                address.getComment(),
+                address.getFullAddress()
+        );
+    }
+}
