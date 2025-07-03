@@ -1,0 +1,24 @@
+package com.delivery.delivery_system.repository;
+
+import com.delivery.delivery_system.model.Order;
+import com.delivery.delivery_system.model.OrderStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    // Методы с пагинацией
+    Page<Order> findByCustomerId(Long customerId, Pageable pageable);
+    Page<Order> findByCourierId(Long courierId, Pageable pageable);
+    Page<Order> findByStatus(OrderStatus status, Pageable pageable);
+
+    // Старые методы без пагинации (можно удалить после миграции)
+    List<Order> findByCustomerId(Long customerId);
+    List<Order> findByCourierId(Long courierId);
+    List<Order> findByStatus(OrderStatus status);
+}
