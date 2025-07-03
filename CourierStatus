@@ -1,0 +1,5 @@
+package com.delivery.delivery_system.model;
+
+public enum CourierStatus {
+    AVAILABLE, BUSY, OFFLINE
+}
