@@ -1,0 +1,167 @@
+package com.delivery.delivery_system.service;
+
+import com.delivery.delivery_system.exception.ResourceNotFoundException;
+import com.delivery.delivery_system.exception.InvalidStatusTransitionException;
+import com.delivery.delivery_system.dto.OrderRequest;
+import com.delivery.delivery_system.dto.OrderResponse;
+import com.delivery.delivery_system.model.*;
+import com.delivery.delivery_system.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class OrderService {
+
+    private final OrderRepository orderRepository;
+    private final CustomerRepository customerRepository;
+    private final ProductRepository productRepository;
+    private final CourierRepository courierRepository;
+    private final AddressRepository addressRepository;
+    private final OrderItemRepository orderItemRepository;
+
+    @Transactional
+    public OrderResponse createOrder(OrderRequest request) {
+        Customer customer = customerRepository.findById(request.customerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + request.customerId()));
+
+        Address address = addressRepository.findById(request.addressId())
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found with id: " + request.addressId()));
+
+        List<Product> products = productRepository.findAllById(request.productIds());
+        if (products.size() != request.productIds().size()) {
+            throw new ResourceNotFoundException("Some products not found");
+        }
+
+        Order order = Order.builder()
+                .customer(customer)
+                .address(address)
+                .status(OrderStatus.NEW)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        order = orderRepository.save(order);
+
+        List<OrderItem> orderItems = products.stream()
+                .map(product -> OrderItem.builder()
+                        .product(product)
+                        .order(order)
+                        .quantity(1)
+                        .build())
+                .collect(Collectors.toList());
+
+        orderItemRepository.saveAll(orderItems);
+        order.setItems(orderItems);
+
+        return mapToOrderResponse(order);
+    }
+
+    @Transactional
+    public OrderResponse assignCourier(Long orderId, Long courierId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        if (order.getStatus() != OrderStatus.NEW) {
+            throw new InvalidStatusTransitionException(
+                    String.format("Cannot assign courier to order in status: %s. Expected status: NEW",
+                            order.getStatus()));
+        }
+
+        Courier courier = courierRepository.findById(courierId)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier not found with id: " + courierId));
+
+        order.setCourier(courier);
+        order.setStatus(OrderStatus.PROCESSING);
+        order = orderRepository.save(order);
+
+        return mapToOrderResponse(order);
+    }
+
+    @Transactional
+    public OrderResponse updateStatus(Long orderId, OrderStatus status) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        if (!isValidStatusTransition(order.getStatus(), status)) {
+            throw new InvalidStatusTransitionException(
+                    String.format("Invalid status transition from %s to %s",
+                            order.getStatus(), status));
+        }
+
+        order.setStatus(status);
+
+        if (status == OrderStatus.DELIVERED) {
+            order.setDeliveredAt(LocalDateTime.now());
+        }
+
+        order = orderRepository.save(order);
+        return mapToOrderResponse(order);
+    }
+
+    // Методы с пагинацией
+    public Page<OrderResponse> getCustomerOrders(Long customerId, Pageable pageable) {
+        if (!customerRepository.existsById(customerId)) {
+            throw new ResourceNotFoundException("Customer not found with id: " + customerId);
+        }
+        return orderRepository.findByCustomerId(customerId, pageable)
+                .map(this::mapToOrderResponse);
+    }
+
+    public Page<OrderResponse> getCourierOrders(Long courierId, Pageable pageable) {
+        if (!courierRepository.existsById(courierId)) {
+            throw new ResourceNotFoundException("Courier not found with id: " + courierId);
+        }
+        return orderRepository.findByCourierId(courierId, pageable)
+                .map(this::mapToOrderResponse);
+    }
+
+    public Page<OrderResponse> getOrdersByStatus(OrderStatus status, Pageable pageable) {
+        return orderRepository.findByStatus(status, pageable)
+                .map(this::mapToOrderResponse);
+    }
+
+    public OrderResponse getOrderById(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        return mapToOrderResponse(order);
+    }
+
+    private boolean isValidStatusTransition(OrderStatus current, OrderStatus newStatus) {
+        return switch (current) {
+            case NEW -> newStatus == OrderStatus.PROCESSING;
+            case PROCESSING -> newStatus == OrderStatus.DELIVERED || newStatus == OrderStatus.CANCELLED;
+            case DELIVERED, CANCELLED -> false;
+        };
+    }
+
+    private OrderResponse mapToOrderResponse(Order order) {
+        return OrderResponse.builder()
+                .id(order.getId())
+                .status(order.getStatus())
+                .createdAt(order.getCreatedAt())
+                .deliveredAt(order.getDeliveredAt())
+                .customerInfo(new OrderResponse.CustomerInfo(
+                        order.getCustomer().getId(),
+                        order.getCustomer().getFullName()))
+                .courierInfo(order.getCourier() != null
+                        ? new OrderResponse.CourierInfo(
+                        order.getCourier().getId(),
+                        order.getCourier().getFullName())
+                        : null)
+                .products(order.getItems().stream()
+                        .map(item -> new OrderResponse.ProductInfo(
+                                item.getProduct().getId(),
+                                item.getProduct().getName(),
+                                item.getProduct().getPrice(),
+                                item.getQuantity()))
+                        .collect(Collectors.toList()))
+                .build();
+    }
+}
