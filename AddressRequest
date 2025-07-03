@@ -1,0 +1,11 @@
+package com.delivery.delivery_system.dto;
+
+
+public record AddressRequest(
+        String city,
+        String street,
+        String house,
+        String apartment,
+        String comment,
+        String fullAddress
+) {}
